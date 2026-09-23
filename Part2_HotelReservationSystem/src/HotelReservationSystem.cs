@@ -15,8 +15,10 @@ public class HotelReservationSystem
     public void AddGuest(Guest guest)
     {
         if (FindGuest(guest.GuestId) != null)
+        {
             throw new InvalidOperationException(
                 $"Guest ID {guest.GuestId} already exists.");
+        }
 
         _guests.Add(guest);
     }
@@ -24,8 +26,10 @@ public class HotelReservationSystem
     public void AddRoom(Room room)
     {
         if (FindRoom(room.RoomNumber) != null)
+        {
             throw new InvalidOperationException(
                 $"Room {room.RoomNumber} already exists.");
+        }
 
         _rooms.Add(room);
     }
@@ -42,28 +46,85 @@ public class HotelReservationSystem
             room => room.RoomNumber == roomNumber);
     }
 
-    public bool IsReservationIdAvailable(int reservationId)
+    public Reservation MakeReservation(
+        int reservationId,
+        Guest guest,
+        Room room,
+        DateTime checkInDate,
+        DateTime checkOutDate)
+    {
+        ValidateReservation(
+            reservationId,
+            room,
+            checkInDate,
+            checkOutDate);
+
+        return guest.AddReservation(
+            reservationId,
+            room,
+            checkInDate,
+            checkOutDate);
+    }
+
+    public bool IsRoomBooked(Room room)
     {
         foreach (Guest guest in _guests)
         {
-            if (guest.Reservations.Any(
-                reservation => reservation.ReservationId == reservationId))
+            foreach (Reservation reservation in guest.Reservations)
             {
-                return false;
+                if (reservation.Room == room &&
+                    reservation.Status != ReservationStatus.Cancelled &&
+                    reservation.Status != ReservationStatus.CheckedOut)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public void ValidateReservation(
+        int reservationId,
+        Room room,
+        DateTime checkInDate,
+        DateTime checkOutDate)
+    {
+        if (!IsReservationIdAvailable(reservationId))
+        {
+            throw new InvalidOperationException(
+                $"Reservation ID {reservationId} already exists.");
+        }
+
+        if (HasOverlappingReservation(
+                room,
+                checkInDate,
+                checkOutDate))
+        {
+            throw new InvalidOperationException(
+                $"Room {room.RoomNumber} is already booked for these dates.");
+        }
+    }
+
+    private bool IsReservationIdAvailable(int reservationId)
+    {
+        foreach (Guest guest in _guests)
+        {
+            foreach (Reservation reservation in guest.Reservations)
+            {
+                if (reservation.ReservationId == reservationId)
+                    return false;
             }
         }
 
         return true;
     }
 
-    public bool IsRoomAvailable(
+    private bool HasOverlappingReservation(
         Room room,
         DateTime checkInDate,
         DateTime checkOutDate)
     {
-        if (room.IsUnderMaintenance)
-            return false;
-
         foreach (Guest guest in _guests)
         {
             foreach (Reservation reservation in guest.Reservations)
@@ -82,10 +143,10 @@ public class HotelReservationSystem
                     reservation.CheckInDate < checkOutDate;
 
                 if (overlaps)
-                    return false;
+                    return true;
             }
         }
 
-        return true;
+        return false;
     }
 }
