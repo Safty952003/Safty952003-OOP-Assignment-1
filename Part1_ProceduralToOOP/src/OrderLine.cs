@@ -18,7 +18,7 @@ public class OrderLine
         Quantity = quantity;
     }
 
-    public double CalculateTotal()
+    public decimal CalculateTotal()
     {
         return Product.Price * Quantity;
     }

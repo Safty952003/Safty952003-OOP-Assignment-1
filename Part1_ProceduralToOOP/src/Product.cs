@@ -8,10 +8,10 @@ public class Product
 {
     public int Id { get; }
     public string Name { get; }
-    public double Price { get; }
+    public decimal Price { get; }
     public int Stock { get; private set; }
 
-    public Product(int id, string name, double price, int stock)
+    public Product(int id, string name, decimal price, int stock)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Product name cannot be empty.");
