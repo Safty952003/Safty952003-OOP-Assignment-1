@@ -11,30 +11,14 @@ public class InvoiceBuilder
 
     private string? _customerEmail;
 
-    private string? _billingStreet;
-    private string? _billingCity;
-    private string? _billingState;
-    private string? _billingZipCode;
-    private string? _billingCountry;
-
-    private string? _shippingStreet;
-    private string? _shippingCity;
-    private string? _shippingState;
-    private string? _shippingZipCode;
-    private string? _shippingCountry;
-
-    private DateTime? _orderDate;
-    private string? _paymentMethod;
-    private string? _currency;
-    private decimal? _subTotal;
-    private decimal _discountAmount;
-    private decimal _taxAmount;
+    private readonly AddressBuilder _billingAddressBuilder = new();
+    private readonly AddressBuilder _shippingAddressBuilder = new();
+    private readonly OrderBuilder _orderBuilder = new();
 
     public InvoiceBuilder(int invoiceId, string customerName)
     {
         if (string.IsNullOrWhiteSpace(customerName))
-            throw new ArgumentException(
-                "Customer name is required.");
+            throw new ArgumentException("Customer name is required.");
 
         _invoiceId = invoiceId;
         _customerName = customerName;
@@ -53,11 +37,12 @@ public class InvoiceBuilder
         string zipCode,
         string country)
     {
-        _billingStreet = street;
-        _billingCity = city;
-        _billingState = state;
-        _billingZipCode = zipCode;
-        _billingCountry = country;
+        _billingAddressBuilder
+            .WithStreet(street)
+            .WithCity(city)
+            .WithState(state)
+            .WithZipCode(zipCode)
+            .WithCountry(country);
 
         return this;
     }
@@ -69,11 +54,12 @@ public class InvoiceBuilder
         string zipCode,
         string country)
     {
-        _shippingStreet = street;
-        _shippingCity = city;
-        _shippingState = state;
-        _shippingZipCode = zipCode;
-        _shippingCountry = country;
+        _shippingAddressBuilder
+            .WithStreet(street)
+            .WithCity(city)
+            .WithState(state)
+            .WithZipCode(zipCode)
+            .WithCountry(country);
 
         return this;
     }
@@ -84,10 +70,11 @@ public class InvoiceBuilder
         string currency,
         decimal subTotal)
     {
-        _orderDate = orderDate;
-        _paymentMethod = paymentMethod;
-        _currency = currency;
-        _subTotal = subTotal;
+        _orderBuilder
+            .WithOrderDate(orderDate)
+            .WithPaymentMethod(paymentMethod)
+            .WithCurrency(currency)
+            .WithSubTotal(subTotal);
 
         return this;
     }
@@ -96,42 +83,36 @@ public class InvoiceBuilder
         decimal discountAmount = 0,
         decimal taxAmount = 0)
     {
-        _discountAmount = discountAmount;
-        _taxAmount = taxAmount;
+        _orderBuilder.WithAdjustments(
+            discountAmount,
+            taxAmount);
 
         return this;
     }
 
     public Invoice Build()
     {
-        decimal subTotal = _subTotal ?? 0;
+        Address billingAddress =
+            _billingAddressBuilder.Build();
 
-        decimal totalAmount =
-            subTotal - _discountAmount + _taxAmount;
+        Address shippingAddress =
+            _shippingAddressBuilder.Build();
+
+        OrderInfo orderInfo =
+            _orderBuilder.Build();
 
         return new Invoice(
             _invoiceId,
             _customerName,
             _customerEmail ?? string.Empty,
-
-            _billingStreet ?? string.Empty,
-            _billingCity ?? string.Empty,
-            _billingState ?? string.Empty,
-            _billingZipCode ?? string.Empty,
-            _billingCountry ?? string.Empty,
-
-            _shippingStreet ?? string.Empty,
-            _shippingCity ?? string.Empty,
-            _shippingState ?? string.Empty,
-            _shippingZipCode ?? string.Empty,
-            _shippingCountry ?? string.Empty,
-
-            _orderDate ?? DateTime.MinValue,
-            _paymentMethod ?? string.Empty,
-            _currency ?? string.Empty,
-            subTotal,
-            _discountAmount,
-            _taxAmount,
-            totalAmount);
+            billingAddress,
+            shippingAddress,
+            orderInfo.OrderDate,
+            orderInfo.PaymentMethod,
+            orderInfo.Currency,
+            orderInfo.SubTotal,
+            orderInfo.DiscountAmount,
+            orderInfo.TaxAmount,
+            orderInfo.TotalAmount);
     }
 }
